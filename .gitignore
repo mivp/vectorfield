@@ -4,3 +4,4 @@ build
 testdata
 orun.log
 .idea
+*.so

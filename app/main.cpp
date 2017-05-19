@@ -101,7 +101,7 @@ void init_resources() {
     
     // vectorfield
     vectorField = new VectorField();
-    vectorField->init(0, 0, 109379.614343, 72919.7428954, 4000);
+    vectorField->init(0, 0, 109379.614343, 72919.7428954, 4000, 100);
     
     vectorField->addControlPoint( 72195.6097426 , 10213.8282815 , 4.9193495505 , 9.838699101 );
     vectorField->addControlPoint( 80216.7814611 , 8390.83470912 , 6.36396103068 , 6.36396103068 );
@@ -250,10 +250,10 @@ int main(int argc, char* argv[]) {
 	}
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     

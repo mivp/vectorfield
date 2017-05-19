@@ -1,21 +1,10 @@
-# Vector field
-
-## Omegalib module
-
-Tested with Omegalib 13.1
-
-Compile:
-```
-cd vectorfield
-mkdir build
-cd build
-cmake ..
-make
-```
-
-Run with python script:
-```
 import vectorfield
+from math import *
+from euclid import *
+from omega import *
+from cyclops import *
+from omegaToolkit import *
+
 vf = vectorfield.initialize()
 vf.init(0, 0, 109379.614343, 72919.7428954, 4000, 1000);
 
@@ -37,21 +26,22 @@ vf.addControlPoint( 70737.2148847 , 25891.573004 , 8.4970583145 , 16.994116629 )
 
 vf.setPointScale(0.8)
 vf.updateVectorField()
-```
 
-Functions which can be used in python script:
-```
-init: initialize grid (minx, minz, maxx, maxz, cellsize, height)
-```
+# model
+scene = getSceneManager()
 
-## Standalone app
+# camera
+cam = getDefaultCamera()
+cam.getController().setSpeed(10000)
+cam.setPosition(Vector3(0, 0, 0))
+setNearFarZ(2, 400000)
 
-Tested with MacOS 10.12.4
-
-```
-cd vectorfield/app
-mkdir build
-cd build
-cmake .. (or cmake .. -G Xcode to build XCode project)
-make (or run build in XCode)
-```
+#menu
+mm = MenuManager.createAndInitialize()
+menu = mm.getMainMenu()
+mm.setMainMenu(menu)
+campos = [39286.29, 64904.98, 125220.43]
+camori = [-0.94, 0.33, 0.09, 0.04]
+cmd = 'cam.setPosition(Vector3(' + str(campos[0]) + ',' + str(campos[1]) + ',' + str(campos[2]) + ')),' + \
+		'cam.setOrientation(Quaternion(' + str(camori[0]) + ',' + str(camori[1]) + ',' + str(camori[2]) + ',' + str(camori[3]) + '))'
+menu.addButton("Go to camera 1", cmd)

@@ -35,20 +35,19 @@ namespace vectorfield {
         
     }
     
-    
     /**
      */
-    SSMaterial::SSMaterial(): Material() {
+    PointMaterial::PointMaterial(): Material() {
         m_shader = new GLSLProgram();
         string filename;
-        filename = m_shaderDir; filename.append("ss_display.vert");
+        filename = m_shaderDir; filename.append("point.vert");
         m_shader->compileShader(filename.c_str());
-        filename = m_shaderDir; filename.append("ss_display.frag");
+        filename = m_shaderDir; filename.append("point.frag");
         m_shader->compileShader(filename.c_str());
         m_shader->link();
     }
     
-    SSMaterial::~SSMaterial() {
+    PointMaterial::~PointMaterial() {
         
     }
     

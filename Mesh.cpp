@@ -23,7 +23,7 @@ namespace vectorfield {
      Mesh Terrain
      */
     Mesh::Mesh(): m_vao(0), m_ibo(0),
-    m_wireframe(false), m_material(0) {
+    m_wireframe(false), m_material(0), m_initialized(false) {
         vertices.clear(); normals.clear(); uvs.clear();
         indices.clear();
         m_modelMatrix = glm::mat4(1.0);
@@ -32,13 +32,15 @@ namespace vectorfield {
     }
     
     Mesh::~Mesh() {
-        if(m_vao > 0) {
+        if(m_vao > 0)
             glDeleteVertexArrays(1,&m_vao);
-            for(int i=0; i < 3; i++)
-                if(m_vbo[i])
-                    glDeleteBuffers(1,&m_vbo[i]);
-            glDeleteBuffers(1,&m_ibo);
-        }
+        
+        for(int i=0; i < 3; i++)
+            if(m_vbo[i])
+                glDeleteBuffers(1,&m_vbo[i]);
+        
+        glDeleteBuffers(1,&m_ibo);
+        
         if(m_material)
             delete m_material;
         vertices.clear(); normals.clear(); uvs.clear();
@@ -58,8 +60,8 @@ namespace vectorfield {
         m_material->Kd = glm::vec3(1.0, 1.0, 1.0);
         m_material->Ks = glm::vec3(0.7, 0.7, 0.7);
         
-        glGenVertexArrays(1, &m_vao);
-        glBindVertexArray(m_vao);
+        //glGenVertexArrays(1, &m_vao);
+        //glBindVertexArray(m_vao);
         
         // create vbos
         // vertices
@@ -79,37 +81,20 @@ namespace vectorfield {
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2)*uvs.size(), &uvs[0], GL_STATIC_DRAW);
         }
         
-        
-        GLSLProgram* shader = m_material->getShader();
-        //shader->bind();
-        unsigned int val;
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        val = glGetAttribLocation(shader->getHandle(), "inPosition");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-        val = glGetAttribLocation(shader->getHandle(), "inNormal");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
-        val = glGetAttribLocation(shader->getHandle(), "inTexCoord");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  2, GL_FLOAT, GL_TRUE, sizeof(glm::vec2), (void*)0);
-        
         // create ibo
         glGenBuffers(1,&m_ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices.size(), &indices[0], GL_STATIC_DRAW);
         
-        glBindVertexArray(0);
+        //glBindVertexArray(0);
+        
+        m_initialized = true;
         
     }
     
     void Mesh::moveTo(glm::vec3 pos) {
         m_modelMatrix = glm::translate(pos) * m_modelMatrix;
+        //std::cout<< glm::to_string(m_modelMatrix)<<std::endl;
     }
     
     void Mesh::rotate(float angle, glm::vec3 axis ) {
@@ -120,7 +105,7 @@ namespace vectorfield {
     
     void Mesh::render(const float MV[16], const float P[16]) {
         
-        if(!m_vao)
+        if(!m_initialized)
             setup();
         
         glEnable(GL_DEPTH_TEST);
@@ -155,7 +140,23 @@ namespace vectorfield {
         if(m_wireframe)
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         
-        glBindVertexArray(m_vao);
+        //glBindVertexArray(m_vao);
+        unsigned int val;
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+        val = glGetAttribLocation(shader->getHandle(), "inPosition");
+        glEnableVertexAttribArray(val);
+        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+        val = glGetAttribLocation(shader->getHandle(), "inNormal");
+        glEnableVertexAttribArray(val);
+        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
+        val = glGetAttribLocation(shader->getHandle(), "inTexCoord");
+        glEnableVertexAttribArray(val);
+        glVertexAttribPointer( val,  2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+        
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         
         glDrawElements( GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0 );
@@ -163,7 +164,8 @@ namespace vectorfield {
         if(m_wireframe)
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         
-        glBindVertexArray(0);
+        shader->unbind();
+        //glBindVertexArray(0);
     }
     
     

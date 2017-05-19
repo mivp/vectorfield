@@ -1,5 +1,4 @@
 #include "VectorField.h"
-#include "INIReader.h"
 
 #include <iostream>
 #include <fstream>
@@ -15,13 +14,24 @@ using namespace glm;
 
 namespace vectorfield {
     
-    VectorField::VectorField(): m_initialized(false), m_gridMin(glm::vec2(0,0)), m_gridMax(glm::vec2(0,0)),
-                                m_gridHeight(0), m_lengthRange(glm::vec2(FLT_MAX, -FLT_MAX)) {
+    VectorField::VectorField(): m_vao(0), m_updated(false), m_initialized(false), m_gridMin(glm::vec2(0,0)), m_gridMax(glm::vec2(0,0)),
+                                m_gridHeight(0), m_lengthRange(glm::vec2(FLT_MAX, -FLT_MAX)),
+                                m_maxParticles(10000), m_lastUsedParticle(0), m_curOffset(0), m_pointScale(1.0) {
         
     }
     
     VectorField::~VectorField() {
-
+        if(m_vao > 0) {
+            glDeleteVertexArrays(1,&m_vao);
+        }
+        
+        for(int i=0; i < 2; i++) {
+            if(m_vbo[i])
+                glDeleteBuffers(1,&m_vbo[i]);
+        }
+        
+        if(m_material)
+            delete m_material;
     }
     
     void VectorField::init(float min_x, float min_z, float max_x, float max_z, float cell_size, float height) {
@@ -34,6 +44,10 @@ namespace vectorfield {
         
         int numPoints = m_gridSizeX * m_gridSizeZ;
         m_gridValues.resize(numPoints);
+        
+        m_particleContainer.resize(m_maxParticles);
+        m_activeVertices.resize(m_maxParticles);
+        m_activeColors.resize(m_maxParticles);
     }
     
     float angleWithXAxis(glm::vec2 vec2) {
@@ -54,7 +68,7 @@ namespace vectorfield {
         
         glm::vec2 dir = glm::vec2(vx, vz);
         float length = 150.0f * glm::length(dir);
-        Mesh* m = MeshUtils::cylinder(150, length);
+        Mesh* m = MeshUtils::cylinder(300, length);
         m->rotate(degreesToRadians(-90), glm::vec3(0, 0, 1));
         m->rotate(angleWithXAxis(dir), glm::vec3(0, 1, 0));
         m->moveTo(glm::vec3(px, m_gridHeight, pz));
@@ -161,8 +175,8 @@ namespace vectorfield {
         for (int z = 0; z < m_gridSizeZ; z++) {
             for (int x = 0; x < m_gridSizeX; x++) {
                 m_gridValues[z * m_gridSizeX + x] = calGridValue(x, z);
-                cout << z << " " << x << " " << m_gridValues[z * m_gridSizeX + x][0] << " "
-                     << m_gridValues[z * m_gridSizeX + x][1] << endl;
+                //cout << z << " " << x << " " << m_gridValues[z * m_gridSizeX + x][0] << " "
+                //     << m_gridValues[z * m_gridSizeX + x][1] << endl;
                 
                 // testing
                 /*
@@ -177,9 +191,142 @@ namespace vectorfield {
                 
             }
         }
+        m_updated = true;
     }
     
-    void VectorField::setup(){
+    //particles
+    int VectorField::findUnusedParticle() {
+        
+        for(int i = m_lastUsedParticle; i < m_maxParticles; i++){
+            if ( m_particleContainer[i].state == STATE_DEAD ) {
+                m_lastUsedParticle = i;
+                return i;
+            }
+        }
+        
+        for(int i=0; i<m_lastUsedParticle; i++){
+            if ( m_particleContainer[i].state == STATE_DEAD ){
+                m_lastUsedParticle = i;
+                return i;
+            }
+        }
+        
+        return 0;
+    }
+    
+    void VectorField::simulateParticles() {
+        
+        if(!m_updated)
+            return;
+        
+        // generate some new particles
+        int newparticles = 0.016f*500.0; // ~ 1k a second
+        
+        float delta = 2000;
+        
+        float size_x = m_gridMax[0] - m_gridMin[0];
+        float size_z = m_gridMax[1] - m_gridMin[1];
+        
+        for(int i=0; i < newparticles; i++) {
+            
+            float x, z;
+            if(m_curOffset < size_x) {
+                x = m_curOffset;
+                z = m_gridMin[1];
+            }
+            else if (m_curOffset < size_x + size_z) {
+                x = m_gridMax[0];
+                z = m_curOffset - size_x;
+            }
+            else if (m_curOffset < 2*size_x + size_z) {
+                x = m_curOffset - size_x - size_z;
+                z = m_gridMax[1];
+            }
+            else if (m_curOffset < 2*size_x + 2*size_z) {
+                x = m_gridMin[0];
+                z = m_curOffset - 2*size_x - size_z;
+            }
+            else {
+                m_curOffset = 0; //-= 2*size_x + 2*size_z - 2000;
+            }
+            m_curOffset += delta;
+            
+            int ind = findUnusedParticle();
+            Particle& p = m_particleContainer[ind];
+            p.pos = glm::vec3(x, m_gridHeight, z);
+            p.state = STATE_ALIVE;
+            p.opaque = 0;
+        }
+        
+        
+        // update all particles
+        m_numActiveParticles = 0;
+        for (int i=0; i  < m_maxParticles; i++) {
+            Particle& p = m_particleContainer[i];
+            if(p.state != STATE_DEAD) {
+                
+                int ix = int(p.pos[0] / m_cellSize);
+                int iz = int(p.pos[2] / m_cellSize);
+                ix = ix < 0 ? 0 : ix;
+                ix = ix > m_gridSizeX - 1 ? m_gridSizeX - 1 : ix;
+                iz = iz < 0 ? 0 : iz;
+                iz = iz > m_gridSizeZ - 1 ? m_gridSizeZ - 1 : iz;
+            
+                glm::vec2 v = m_gridValues[iz * m_gridSizeX + ix];
+                p.pos = p.pos + 5.0f*glm::vec3(v[0], 0, v[1]);
+                
+                if(p.pos[0] < m_gridMin[0] || p.pos[2] <  m_gridMin[1] ||
+                   p.pos[0] > m_gridMax[0] || p.pos[2] >  m_gridMax[1] ) {
+                    
+                    p.state = STATE_DYING;
+                    
+                } else {
+                    glm::vec4 color = calColor(glm::length(v));
+                    m_activeVertices[m_numActiveParticles] = p.pos;
+                    m_activeColors[m_numActiveParticles] = color;
+                    m_numActiveParticles++;
+                }
+                
+                if(p.state == STATE_DYING) {
+                    p.opaque -= 0.001;
+                    if(p.opaque < 0.0001)
+                        p.state = STATE_DEAD;
+                }
+                else {
+                    p.opaque += 0.001;
+                    p.opaque = p.opaque > 1.0 ? 1.0 : p.opaque;
+                }
+                p.color *= p.opaque;
+                
+            }
+        }
+        
+        //cout << "m_numActiveParticles: " << m_numActiveParticles << endl;
+    }
+    
+    //display
+    void VectorField::setup() {
+        
+        if (!m_updated)
+            return;
+        
+        m_material = new PointMaterial();
+        
+        //glGenVertexArrays(1, &m_vao);
+        //glBindVertexArray(m_vao);
+        
+        glGenBuffers(1, &m_vbo[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * m_maxParticles, NULL, GL_STREAM_DRAW);
+        
+        glGenBuffers(1, &m_vbo[1]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * m_maxParticles, NULL, GL_STREAM_DRAW);
+        
+        //glBindVertexArray(0);
+        
+        glEnable(GL_POINT_SPRITE);
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         
         m_initialized = true;
     }
@@ -195,6 +342,42 @@ namespace vectorfield {
         for(int i=0; i < m_meshTest.size(); i++)
             m_meshTest[i]->render(MV, P);
         
+        // particles
+        simulateParticles();
+        
+        glm::mat4 modelViewMatrix = glm::make_mat4(MV);
+        glm::mat4 projMatrix = glm::make_mat4(P);
+        glm::mat4 mvp = projMatrix * modelViewMatrix;
+        
+        GLSLProgram* shader = m_material->getShader();
+        shader->bind();
+        
+        shader->setUniform("uMV", modelViewMatrix);
+        shader->setUniform("uMVP", mvp);
+        shader->setUniform("uScreenHeight", 800.0f);
+        shader->setUniform("uPointScale", m_pointScale);
+        
+        //glBindVertexArray(m_vao);
+        unsigned int val;
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+        val = glGetAttribLocation(shader->getHandle(), "inPosition");
+        glEnableVertexAttribArray(val);
+        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec3), &m_activeVertices[0]);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+        val = glGetAttribLocation(shader->getHandle(), "inColor");
+        glEnableVertexAttribArray(val);
+        glVertexAttribPointer( val,  4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec4), &m_activeColors[0]);
+        
+        glEnable(GL_POINT_SPRITE);
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+        glDrawArrays( GL_POINTS, 0, m_numActiveParticles );
+        
+        shader->unbind();
+        //glBindVertexArray(0);
     }
     
 }; //namespace vectorfield

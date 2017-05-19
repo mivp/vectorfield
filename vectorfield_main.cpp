@@ -3,19 +3,19 @@
 #include <iostream>
 #include <vector>
 
-#include "Terrain.h"
+#include "VectorField.h"
 
 using namespace std;
 using namespace omega;
 
 ///////////////////////////////////////////////////////////////////////////////
-class TessTerrainRenderModule : public EngineModule
+class VectorFieldRenderModule : public EngineModule
 {
 public:
-    TessTerrainRenderModule() :
-        EngineModule("TessTerrainRenderModule"), visible(true), updateviewport(false)
+    VectorFieldRenderModule() :
+        EngineModule("VectorFieldRenderModule"), visible(true)
     {
-    	terrains.clear();
+        vectorfield = new vectorfield::VectorField();
     }
 
     virtual void initializeRenderer(Renderer* r);
@@ -28,59 +28,52 @@ public:
     
     virtual void dispose()
     {
-        for(int i=0; i < terrains.size(); i++)
-            delete terrains[i];
+        if(vectorfield)
+            delete vectorfield;
     }
 
-    void addTerrain(const string& option_file)
+    void init(  const float min_x, const float min_z, 
+                const float max_x, const float max_z, 
+                const float cell_size, const float height )
     {
-        vectorfield::TessTerrain* terrain = new vectorfield::TessTerrain();
-        terrain->init(option_file);
-        terrains.push_back(terrain);
-    }
+        if(vectorfield)
+            vectorfield->init(min_x, min_z, max_x, max_z, cell_size, height);
+    } 
 
-    void printInfo()
+    void addControlPoint(const float px, const float pz,
+                         const float vx, const float vz)
     {
-        for(int i=0; i < terrains.size(); i++)
-            terrains[i]->printInfo();
+        if(vectorfield)
+            vectorfield->addControlPoint(px, pz, vx, vz);
     }
 
-    void nextDisplayMode()
-    {  
-        for(int i=0; i < terrains.size(); i++)
-            terrains[i]->nextDisplayMode();
-    }
-
-    void moveTo(const int index, const float x, const float y, const float z)
+    void updateVectorField()
     {
-        if(index < 0 || index >= terrains.size())
-            return;
-        terrains[index]->moveTo(x, y, z);
+        if(vectorfield)
+            vectorfield->update();
     }
 
-    void setHeightScale(const float scale)
+    void setVisible(bool v)
     {
-        for(int i=0; i < terrains.size(); i++)
-            terrains[i]->setHeightScale(scale);
+        visible = v;
     }
 
-    void toggleFog()
+    void setPointScale(float ps)
     {
-        for(int i=0; i < terrains.size(); i++)
-            terrains[i]->toggleFog();
+        if(vectorfield)
+            vectorfield->setPointScale(ps);
     }
 
-    vector<vectorfield::TessTerrain*> terrains;
+    vectorfield::VectorField* vectorfield;
     bool visible;
-    bool updateviewport;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-class TessTerrainRenderPass : public RenderPass
+class VectorFieldRenderPass : public RenderPass
 {
 public:
-    TessTerrainRenderPass(Renderer* client, TessTerrainRenderModule* prm) : 
-        RenderPass(client, "TessTerrainRenderPass"), 
+    VectorFieldRenderPass(Renderer* client, VectorFieldRenderModule* prm) : 
+        RenderPass(client, "VectorFieldRenderPass"), 
         module(prm) {}
     
     virtual void initialize()
@@ -97,22 +90,12 @@ public:
 	
     	    if(module->visible)
     	    { 
-                if(!module->updateviewport && module->terrains.size() > 0) {
-
-                    for(int i=0; i < module->terrains.size(); i++) {
-                        module->terrains[i]->calViewportMatrix(context.viewport.width(), context.viewport.height());
-                    }
-                    
-                    module->updateviewport = true;
-                }
-	        
                 float* MV = context.modelview.cast<float>().data();
                 float* P = context.projection.cast<float>().data();
-                for(int i=0; i < module->terrains.size(); i++) {
-                    module->terrains[i]->render(MV, P);
-                }
+
+                module->vectorfield->render(MV, P);
+
                 if(oglError) return;
-		
     	    }
             
             client->getRenderer()->endDraw();
@@ -122,20 +105,20 @@ public:
     }
 
 private:
-    TessTerrainRenderModule* module;
+    VectorFieldRenderModule* module;
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-void TessTerrainRenderModule::initializeRenderer(Renderer* r)
+void VectorFieldRenderModule::initializeRenderer(Renderer* r)
 {
-    r->addRenderPass(new TessTerrainRenderPass(r, this));
+    r->addRenderPass(new VectorFieldRenderPass(r, this));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-TessTerrainRenderModule* initialize()
+VectorFieldRenderModule* initialize()
 {
-    TessTerrainRenderModule* prm = new TessTerrainRenderModule();
+    VectorFieldRenderModule* prm = new VectorFieldRenderModule();
     ModuleServices::addModule(prm);
     prm->doInitialize(Engine::instance());
     return prm;
@@ -147,13 +130,12 @@ TessTerrainRenderModule* initialize()
 BOOST_PYTHON_MODULE(vectorfield)
 {
     //
-    PYAPI_REF_BASE_CLASS(TessTerrainRenderModule)
-    PYAPI_METHOD(TessTerrainRenderModule, addTerrain)
-    PYAPI_METHOD(TessTerrainRenderModule, printInfo)
-    PYAPI_METHOD(TessTerrainRenderModule, nextDisplayMode)
-    PYAPI_METHOD(TessTerrainRenderModule, moveTo)
-    PYAPI_METHOD(TessTerrainRenderModule, setHeightScale)
-    PYAPI_METHOD(TessTerrainRenderModule, toggleFog)
+    PYAPI_REF_BASE_CLASS(VectorFieldRenderModule)
+    PYAPI_METHOD(VectorFieldRenderModule, init)
+    PYAPI_METHOD(VectorFieldRenderModule, addControlPoint)
+    PYAPI_METHOD(VectorFieldRenderModule, updateVectorField)
+    PYAPI_METHOD(VectorFieldRenderModule, setVisible)
+    PYAPI_METHOD(VectorFieldRenderModule, setPointScale)
     ;
 
     def("initialize", initialize, PYAPI_RETURN_REF);

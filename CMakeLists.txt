@@ -18,16 +18,16 @@ add_definitions(-DOMEGALIB_MODULE)
 
 # Set module name and source files here
 add_library(${MODULE_NAME} MODULE 
-		INIReader.h
 		Program.h
 		Program.cpp
 		Material.h
 		Material.cpp
-		Terrain.h
-		Terrain.cpp
-		Texture.h
-		Texture.cpp
+		Mesh.h
+		Mesh.cpp
+		VectorField.h
+		VectorField.cpp
 		vectorfield.cpp 
+		vectorfield_main.cpp
         )
 
 # Set the module library dependencies here
