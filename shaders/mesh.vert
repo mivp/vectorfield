@@ -5,7 +5,7 @@
 //layout (location = 2) in vec2 inTexCoord;
 attribute vec3 inPosition;
 attribute vec3 inNormal;
-attribute vec2 inTexCoord;
+//attribute vec2 inTexCoord;
 
 uniform mat4 uMVP;
 uniform mat4 uModelView;
@@ -16,12 +16,12 @@ uniform mat3 uNormalMatrix;
 //out vec2 TexCoord0;
 varying vec3 Position0;
 varying vec3 Normal0;
-varying vec2 TexCoord0;
+//varying vec2 TexCoord0;
 
 void main(void)
 {
    gl_Position = uMVP * vec4(inPosition, 1);
    Position0 = (uModelView * vec4(inPosition, 1)).xyz;
    Normal0 = uNormalMatrix * inNormal;
-   TexCoord0 = inTexCoord;
+   //TexCoord0 = inTexCoord;
 }

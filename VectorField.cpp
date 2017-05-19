@@ -273,7 +273,7 @@ namespace vectorfield {
                 iz = iz > m_gridSizeZ - 1 ? m_gridSizeZ - 1 : iz;
             
                 glm::vec2 v = m_gridValues[iz * m_gridSizeX + ix];
-                p.pos = p.pos + 5.0f*glm::vec3(v[0], 0, v[1]);
+                p.pos = p.pos + 3.0f*glm::vec3(v[0], 0, v[1]);
                 
                 if(p.pos[0] < m_gridMin[0] || p.pos[2] <  m_gridMin[1] ||
                    p.pos[0] > m_gridMax[0] || p.pos[2] >  m_gridMax[1] ) {
@@ -358,18 +358,18 @@ namespace vectorfield {
         shader->setUniform("uPointScale", m_pointScale);
         
         //glBindVertexArray(m_vao);
-        unsigned int val;
+        unsigned int val0, val1;
         
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        val = glGetAttribLocation(shader->getHandle(), "inPosition");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        val0 = glGetAttribLocation(shader->getHandle(), "inPosition");
+        glEnableVertexAttribArray(val0);
+        glVertexAttribPointer( val0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec3), &m_activeVertices[0]);
         
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-        val = glGetAttribLocation(shader->getHandle(), "inColor");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+        val1 = glGetAttribLocation(shader->getHandle(), "inColor");
+        glEnableVertexAttribArray(val1);
+        glVertexAttribPointer( val1,  4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
         glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec4), &m_activeColors[0]);
         
         glEnable(GL_POINT_SPRITE);
@@ -377,6 +377,12 @@ namespace vectorfield {
         glDrawArrays( GL_POINTS, 0, m_numActiveParticles );
         
         shader->unbind();
+	
+	glDisableVertexAttribArray(val0);
+	glDisableVertexAttribArray(val1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	shader->unbind();
+
         //glBindVertexArray(0);
     }
     

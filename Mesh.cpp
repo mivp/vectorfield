@@ -75,12 +75,15 @@ namespace vectorfield {
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*normals.size(), &normals[0], GL_STATIC_DRAW);
         }
         // uvs
+	/*
         if(uvs.size() > 0) {
             glGenBuffers(1,&m_vbo[2]);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2)*uvs.size(), &uvs[0], GL_STATIC_DRAW);
         }
-        
+	cout << m_vbo[0] << " " << m_vbo[1] << " " << m_vbo[2] << endl;
+        */
+
         // create ibo
         glGenBuffers(1,&m_ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
@@ -89,6 +92,7 @@ namespace vectorfield {
         //glBindVertexArray(0);
         
         m_initialized = true;
+if(oglError) return;
         
     }
     
@@ -108,11 +112,12 @@ namespace vectorfield {
         if(!m_initialized)
             setup();
         
-        glEnable(GL_DEPTH_TEST);
+        //glEnable(GL_DEPTH_TEST);
         
         GLSLProgram* shader = m_material->getShader();
         shader->bind();
-        
+        if(oglError) return;
+
         glm::mat4 viewMatrix = glm::make_mat4(MV);
         glm::mat4 projMatrix = glm::make_mat4(P);
         glm::mat4 modelViewMatrix = viewMatrix * m_modelMatrix;
@@ -137,34 +142,44 @@ namespace vectorfield {
         shader->setUniform( "material.Ks",  m_material->Ks );
         shader->setUniform( "material.shininess", m_material->shininess );
         
-        if(m_wireframe)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //if(m_wireframe)
+        //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         
         //glBindVertexArray(m_vao);
-        unsigned int val;
+        unsigned int val0, val1, val2;
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        val = glGetAttribLocation(shader->getHandle(), "inPosition");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        val0 = glGetAttribLocation(shader->getHandle(), "inPosition");
+        glEnableVertexAttribArray(val0);
+        glVertexAttribPointer( val0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+if(oglError) return;
+
         
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-        val = glGetAttribLocation(shader->getHandle(), "inNormal");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        
+        val1 = glGetAttribLocation(shader->getHandle(), "inNormal");
+        glEnableVertexAttribArray(val1);
+        glVertexAttribPointer( val1,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+if(oglError) return;
+        /* 
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
-        val = glGetAttribLocation(shader->getHandle(), "inTexCoord");
-        glEnableVertexAttribArray(val);
-        glVertexAttribPointer( val,  2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-        
+        val2 = glGetAttribLocation(shader->getHandle(), "inTexCoord");
+        glEnableVertexAttribArray(val2);
+        glVertexAttribPointer( val2,  2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+if(oglError) return;
+        */
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         
         glDrawElements( GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0 );
+if(oglError) return;
         
-        if(m_wireframe)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //if(m_wireframe)
+        //    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         
-        shader->unbind();
+	glDisableVertexAttribArray(val0);
+	glDisableVertexAttribArray(val1);
+	//glDisableVertexAttribArray(val2);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	shader->unbind();
         //glBindVertexArray(0);
     }
     

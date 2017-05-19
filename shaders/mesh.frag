@@ -5,7 +5,7 @@
 //in vec2 TexCoord0; 
 varying vec3 Position0;
 varying vec3 Normal0;
-varying vec2 Texcoord0;
+//varying vec2 TexCoord0;
 
 //layout( location = 0 ) out vec4 FragColor;
 

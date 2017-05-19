@@ -26,7 +26,7 @@ add_library(${MODULE_NAME} MODULE
 		Mesh.cpp
 		VectorField.h
 		VectorField.cpp
-		vectorfield.cpp 
+		VectorField.cpp 
 		vectorfield_main.cpp
         )
 
