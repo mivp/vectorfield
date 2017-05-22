@@ -1,8 +1,6 @@
-#version 120
-//layout (location = 0) in vec3 inPosition;
-//layout (location = 1) in vec4 inColor;
-attribute vec3 inPosition;
-attribute vec4 inColor;
+#version 330
+layout (location = 0) in vec3 inPosition;
+layout (location = 1) in vec4 inColor;
 
 uniform mat4 uMV;
 uniform mat4 uMVP;
@@ -10,8 +8,7 @@ uniform float uScreenHeight = 800;
 uniform float uPointScale = 0.1;
 uniform vec2 uPointSizeRange = vec2(2, 100);
 
-//out vec4 Color0;
-varying vec4 Color0;
+out vec4 Color0;
 
 void main(void)
 {

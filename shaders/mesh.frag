@@ -1,13 +1,10 @@
-#version 120
+#version 330
 
-//in vec3 Position0;
-//in vec3 Normal0; 
-//in vec2 TexCoord0; 
-varying vec3 Position0;
-varying vec3 Normal0;
-//varying vec2 TexCoord0;
+in vec3 Position0;
+in vec3 Normal0; 
+in vec2 TexCoord0; 
 
-//layout( location = 0 ) out vec4 FragColor;
+layout( location = 0 ) out vec4 FragColor;
 
 uniform struct LightInfo
 {
@@ -56,6 +53,5 @@ void main()
 	// Calculate the lighting model, keeping the specular component separate
     vec3 ambientAndDiff, spec;
     phongModel( ambientAndDiff, spec );
-    //FragColor = vec4( ambientAndDiff, 1.0 ) * material.color + vec4( spec, 1.0 );
-    gl_FragColor = vec4( ambientAndDiff, 1.0 ) * material.color + vec4( spec, 1.0 );
+    FragColor = vec4( ambientAndDiff, 1.0 ) * material.color + vec4( spec, 1.0 );
 }

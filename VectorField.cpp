@@ -312,8 +312,8 @@ namespace vectorfield {
         
         m_material = new PointMaterial();
         
-        //glGenVertexArrays(1, &m_vao);
-        //glBindVertexArray(m_vao);
+        glGenVertexArrays(1, &m_vao);
+        glBindVertexArray(m_vao);
         
         glGenBuffers(1, &m_vbo[0]);
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
@@ -323,7 +323,7 @@ namespace vectorfield {
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * m_maxParticles, NULL, GL_STREAM_DRAW);
         
-        //glBindVertexArray(0);
+        glBindVertexArray(0);
         
         glEnable(GL_POINT_SPRITE);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
@@ -357,7 +357,7 @@ namespace vectorfield {
         shader->setUniform("uScreenHeight", 800.0f);
         shader->setUniform("uPointScale", m_pointScale);
         
-        //glBindVertexArray(m_vao);
+        glBindVertexArray(m_vao);
         unsigned int val0, val1;
         
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
@@ -378,12 +378,12 @@ namespace vectorfield {
         
         shader->unbind();
 	
-	glDisableVertexAttribArray(val0);
-	glDisableVertexAttribArray(val1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	shader->unbind();
+        glDisableVertexAttribArray(val0);
+        glDisableVertexAttribArray(val1);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        shader->unbind();
 
-        //glBindVertexArray(0);
+        glBindVertexArray(0);
     }
     
 }; //namespace vectorfield

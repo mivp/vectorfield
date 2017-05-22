@@ -1,9 +1,8 @@
-#version 120
+#version 330
 
-//in vec4 Color0;
-varying vec4 Color0;
+in vec4 Color0;
 
-//layout( location = 0 ) out vec4 FragColor;
+layout( location = 0 ) out vec4 FragColor;
 
 void main() 
 {
@@ -14,6 +13,5 @@ void main()
         discard;
     }
 
-    //FragColor = Color0;
-    gl_FragColor = Color0;
+    FragColor = Color0;
 }
