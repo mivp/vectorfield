@@ -71,7 +71,7 @@ namespace vectorfield {
         int m_lastUsedParticle;
         vector<Particle> m_particleContainer;
         float m_curOffset;
-        int m_skip;
+        unsigned int m_skip;
         //to render
         int m_particleType;
         int m_numActiveParticles;

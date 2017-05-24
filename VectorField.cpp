@@ -226,10 +226,10 @@ namespace vectorfield {
             return;
         
         m_skip++;
-        if(m_skip % 3 != 0)
+        if(m_skip % 2 != 0)
             return;
     
-        float SPEED = 10.0f;
+        float SPEED = 8.0f;
         
         m_numActiveParticles = 0;
         
@@ -343,8 +343,8 @@ namespace vectorfield {
         
         glBindVertexArray(0);
         
-        glEnable(GL_POINT_SPRITE);
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+        //glEnable(GL_POINT_SPRITE);
+        //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         
         m_initialized = true;
     }
@@ -397,13 +397,13 @@ namespace vectorfield {
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
             glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec4), &m_activeColors[0]);
             
+	    glEnable(GL_POINT_SPRITE);
+            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
             glDrawArrays( GL_POINTS, 0, m_numActiveParticles );
-            
-            shader->unbind();
-            
+             
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             shader->unbind();
-            
             glBindVertexArray(0);
         }
     }
