@@ -3,6 +3,7 @@
 in vec3 Position0;
 in vec3 Normal0; 
 in vec2 TexCoord0; 
+in vec4 Color0;
 
 layout( location = 0 ) out vec4 FragColor;
 
@@ -24,7 +25,7 @@ uniform struct MaterialInfo
 void phongModel( out vec3 ambientAndDiff, out vec3 spec )
 {
     // Some useful vectors
-    vec3 s = normalize( vec3( light.position )/* - Position0.xyz*/ );
+    vec3 s = normalize( vec3( light.position ) ); // - Position0.xyz );
     vec3 v = normalize( -Position0.xyz );
     vec3 n = normalize( Normal0 );
     vec3 r = reflect( -s, n );
@@ -53,5 +54,6 @@ void main()
 	// Calculate the lighting model, keeping the specular component separate
     vec3 ambientAndDiff, spec;
     phongModel( ambientAndDiff, spec );
-    FragColor = vec4( ambientAndDiff, 1.0 ) * material.color + vec4( spec, 1.0 );
+    //FragColor = vec4( ambientAndDiff, 1.0 ) * material.color + vec4( spec, 1.0 );
+    FragColor = vec4( ambientAndDiff, 1.0 ) * Color0 + vec4( spec, 1.0 );
 }

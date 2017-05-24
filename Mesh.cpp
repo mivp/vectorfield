@@ -22,20 +22,20 @@ namespace vectorfield {
     /**
      Mesh Terrain
      */
-    Mesh::Mesh(): m_vao(0), m_ibo(0),
-    m_wireframe(false), m_material(0), m_initialized(false) {
+    Mesh::Mesh(): m_vao(0), m_ibo(0), m_numInstances(1),
+        m_wireframe(false), m_material(0), m_initialized(false) {
         vertices.clear(); normals.clear(); uvs.clear();
         indices.clear();
-        m_modelMatrix = glm::mat4(1.0);
-        m_color = glm::vec4(1.0);
         m_vbo[0] = 0; m_vbo[1] = 0; m_vbo[2] = 0;
+            
+        setNumInstances(m_numInstances);
     }
     
     Mesh::~Mesh() {
         if(m_vao > 0)
             glDeleteVertexArrays(1,&m_vao);
         
-        for(int i=0; i < 3; i++)
+        for(int i=0; i < 7; i++)
             if(m_vbo[i])
                 glDeleteBuffers(1,&m_vbo[i]);
         
@@ -45,6 +45,17 @@ namespace vectorfield {
             delete m_material;
         vertices.clear(); normals.clear(); uvs.clear();
         indices.clear();
+    }
+    
+    void Mesh::setNumInstances(int num) {
+        
+        m_numInstances = num;
+        m_modelMatrixes.resize(num);
+        m_colors.resize(num);
+        for(int i=0; i < num; i++) {
+            m_modelMatrixes[i] = glm::mat4(1.0);
+            m_colors[i] = glm::vec4(1.0);
+        }
     }
     
     void Mesh::setup(){
@@ -68,23 +79,69 @@ namespace vectorfield {
         glGenBuffers(1,&m_vbo[0]);
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*vertices.size(), &vertices[0], GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer( 0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         // normals
         if(normals.size() > 0) {
             glGenBuffers(1,&m_vbo[1]);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*normals.size(), &normals[0], GL_STATIC_DRAW);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer( 1,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         }
         // uvs
         if(uvs.size() > 0) {
             glGenBuffers(1,&m_vbo[2]);
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2)*uvs.size(), &uvs[0], GL_STATIC_DRAW);
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer( 2,  2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
         }
-	
+       
+        // instance color
+        glGenBuffers(1,&m_vbo[3]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4)*m_numInstances, NULL, GL_DYNAMIC_DRAW);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4),
+                              (const GLvoid*)( 0 ));
+        glVertexAttribDivisor(3, 1);
+        // instance mvp
+        glGenBuffers(1,&m_vbo[4]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[4]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * m_numInstances, NULL, GL_DYNAMIC_DRAW);
+        for (unsigned int i = 0; i < 4 ; i++) {
+            glEnableVertexAttribArray(4 + i);
+            glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (const GLvoid*)( i * sizeof(glm::vec4) ));
+            glVertexAttribDivisor(4 + i, 1);
+        }
+        // instance mv
+        glGenBuffers(1,&m_vbo[5]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[5]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * m_numInstances, NULL, GL_DYNAMIC_DRAW);
+        for (unsigned int i = 0; i < 4 ; i++) {
+            glEnableVertexAttribArray(8 + i);
+            glVertexAttribPointer(8 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (const GLvoid*)( i * sizeof(glm::vec4) ));
+            glVertexAttribDivisor(8 + i, 1);
+        }
+        // instance normal matrix
+        glGenBuffers(1,&m_vbo[6]);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[6]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat3) * m_numInstances, NULL, GL_DYNAMIC_DRAW);
+        for (unsigned int i = 0; i < 3 ; i++) {
+            glEnableVertexAttribArray(12 + i);
+            glVertexAttribPointer(12 + i, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
+                                  (const GLvoid*)( i * sizeof(glm::vec3) ));
+            glVertexAttribDivisor(12 + i, 1);
+        }
+        
         // create ibo
         glGenBuffers(1,&m_ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*indices.size(), &indices[0], GL_STATIC_DRAW);
+        
         
         glBindVertexArray(0);
         
@@ -92,14 +149,22 @@ namespace vectorfield {
         
     }
     
-    void Mesh::moveTo(glm::vec3 pos) {
-        m_modelMatrix = glm::translate(pos) * m_modelMatrix;
+    void Mesh::reset(int ind) {
+        m_modelMatrixes[ind] = glm::mat4(1.0);
+    }
+    
+    void Mesh::scale(int ind, glm::vec3 s) {
+        m_modelMatrixes[ind] = glm::scale(s) * m_modelMatrixes[ind];
+    }
+    
+    void Mesh::rotate(int ind, float angle, glm::vec3 axis ) {
+        
+        m_modelMatrixes[ind] = glm::rotate( angle, axis ) * m_modelMatrixes[ind];
         //std::cout<< glm::to_string(m_modelMatrix)<<std::endl;
     }
     
-    void Mesh::rotate(float angle, glm::vec3 axis ) {
-        
-        m_modelMatrix = glm::rotate( angle, axis ) * m_modelMatrix;
+    void Mesh::moveTo(int ind, glm::vec3 pos) {
+        m_modelMatrixes[ind] = glm::translate(pos) * m_modelMatrixes[ind];
         //std::cout<< glm::to_string(m_modelMatrix)<<std::endl;
     }
     
@@ -115,58 +180,56 @@ namespace vectorfield {
 
         glm::mat4 viewMatrix = glm::make_mat4(MV);
         glm::mat4 projMatrix = glm::make_mat4(P);
-        glm::mat4 modelViewMatrix = viewMatrix * m_modelMatrix;
-        glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(modelViewMatrix));
-        glm::mat4 mvp = projMatrix * modelViewMatrix;
         
-        shader->setUniform("uModelView", modelViewMatrix);
-        shader->setUniform("uMVP", mvp);
-        shader->setUniform("uNormalMatrix", normalMatrix);
+        vector<glm::mat4> mvMatrixes; mvMatrixes.resize(m_numInstances);
+        vector<glm::mat4> mvpMatrixes; mvpMatrixes.resize(m_numInstances);
+        vector<glm::mat3> normalMatrixes; normalMatrixes.resize(m_numInstances);
+        
+        for(int i=0; i < m_numInstances; i++) {
+            mvMatrixes[i] = viewMatrix * m_modelMatrixes[i];
+            mvpMatrixes[i] = projMatrix * mvMatrixes[i];
+            normalMatrixes[i] = glm::inverseTranspose(glm::mat3(mvMatrixes[i]));
+        }
         
         // Set the lighting parameters
-        glm::vec4 worldLightDirection( 0.50000019433, 0.86602529158, 0.0f, 0.0f ); //sin(30), cos(30)
-        glm::mat4 worldToEyeNormal( normalMatrix );
-        glm::vec4 lightDirection = worldToEyeNormal * worldLightDirection;
+        glm::vec4 worldLightDirection( -0.50000019433, -0.86602529158, 0.0f, 0.0f ); //sin(30), cos(30)
+        //glm::mat4 worldToEyeNormal( normalMatrixes[0] );
+        //glm::vec4 lightDirection = worldToEyeNormal * worldLightDirection;
+        glm::vec4 lightDirection = viewMatrix * worldLightDirection;
         shader->setUniform( "light.position", lightDirection );
         shader->setUniform( "light.intensity", glm::vec3( 1.0f, 1.0f, 1.0f ) );
         
         // Set the material properties
-        shader->setUniform( "material.color",  m_color );
+        //shader->setUniform( "material.color",  m_color );
+        shader->setUniform( "material.color",  glm::vec4(1.0) );
         shader->setUniform( "material.Ka",  m_material->Ka );
         shader->setUniform( "material.Kd",  m_material->Kd );
         shader->setUniform( "material.Ks",  m_material->Ks );
         shader->setUniform( "material.shininess", m_material->shininess );
         
-        //if(m_wireframe)
-        //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        
         glBindVertexArray(m_vao);
-        unsigned int val0, val1, val2;
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        val0 = glGetAttribLocation(shader->getHandle(), "inPosition");
-        glEnableVertexAttribArray(val0);
-        glVertexAttribPointer( val0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+       
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[3]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * m_numInstances, &m_colors[0], GL_DYNAMIC_DRAW);
         
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-        val1 = glGetAttribLocation(shader->getHandle(), "inNormal");
-        glEnableVertexAttribArray(val1);
-        glVertexAttribPointer( val1,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[2]);
-        val2 = glGetAttribLocation(shader->getHandle(), "inTexCoord");
-        glEnableVertexAttribArray(val2);
-        glVertexAttribPointer( val2,  2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
-
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[4]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * m_numInstances, &mvpMatrixes[0], GL_DYNAMIC_DRAW);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[5]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * m_numInstances, &mvMatrixes[0], GL_DYNAMIC_DRAW);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[6]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat3) * m_numInstances, &normalMatrixes[0], GL_DYNAMIC_DRAW);
+        
+        if(m_wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
+        glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0, m_numInstances);
         
-        glDrawElements( GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0 );
+        if(m_wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         
-        //if(m_wireframe)
-        //    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        
-        glDisableVertexAttribArray(val0);
-        glDisableVertexAttribArray(val1);
-        glDisableVertexAttribArray(val2);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         shader->unbind();

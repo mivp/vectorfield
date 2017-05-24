@@ -123,20 +123,17 @@ void init_resources() {
     vectorField->update();
     
     // axes
-    Mesh* xaxis = MeshUtils::cylinder(200, 10000, 3, 6);
-    xaxis->rotate(degreesToRadians(-90), glm::vec3(0, 0, 1));
-    xaxis->setColor(glm::vec4(1, 0, 0, 1));
-    objects.push_back(xaxis);
-    
-    Mesh* yaxis = MeshUtils::cylinder(200, 10000, 3, 6);
-    yaxis->setColor(glm::vec4(0, 1, 0, 1));
-    objects.push_back(yaxis);
-    
-    Mesh* zaxis = MeshUtils::cylinder(200, 10000, 3, 6);
-    zaxis->rotate(degreesToRadians(90), glm::vec3(1, 0, 0));
-    zaxis->setColor(glm::vec4(0, 0, 1, 1));
-    objects.push_back(zaxis);
-    
+    Mesh* axes = MeshUtils::cylinder(200, 10000);
+    axes->setNumInstances(3);
+    //x
+    axes->rotate(0, degreesToRadians(-90), glm::vec3(0, 0, 1));
+    axes->setColor(0, glm::vec4(1, 0, 0, 1));
+    //y
+    axes->setColor(1, glm::vec4(0, 1, 0, 1));
+    //z
+    axes->rotate(2, degreesToRadians(90), glm::vec3(1, 0, 0));
+    axes->setColor(2, glm::vec4(0, 0, 1, 1));
+    objects.push_back(axes);
 }
 
 void free_resources()

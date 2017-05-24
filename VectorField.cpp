@@ -16,7 +16,8 @@ namespace vectorfield {
     
     VectorField::VectorField(): m_vao(0), m_updated(false), m_initialized(false), m_gridMin(glm::vec2(0,0)), m_gridMax(glm::vec2(0,0)),
                                 m_gridHeight(0), m_lengthRange(glm::vec2(FLT_MAX, -FLT_MAX)),
-                                m_maxParticles(10000), m_lastUsedParticle(0), m_curOffset(0), m_pointScale(1.0) {
+                                m_maxParticles(10000), m_lastUsedParticle(0), m_curOffset(0), m_pointScale(1.0), m_skip(0),
+                                m_particleType(TYPE_ARROW), m_numActiveParticles(0), m_meshControlPoints(0), m_arrows(0) {
         
     }
     
@@ -32,6 +33,12 @@ namespace vectorfield {
         
         if(m_material)
             delete m_material;
+        
+        if(m_meshControlPoints)
+            delete m_meshControlPoints;
+        
+        if(m_arrows)
+            delete m_arrows;
     }
     
     void VectorField::init(float min_x, float min_z, float max_x, float max_z, float cell_size, float height) {
@@ -48,6 +55,9 @@ namespace vectorfield {
         m_particleContainer.resize(m_maxParticles);
         m_activeVertices.resize(m_maxParticles);
         m_activeColors.resize(m_maxParticles);
+        m_activeVectors.resize(m_maxParticles);
+        
+        m_meshControlPoints = MeshUtils::cylinder(200, 150);
     }
     
     float angleWithXAxis(glm::vec2 vec2) {
@@ -66,12 +76,13 @@ namespace vectorfield {
         p.value = glm::vec2(vx, vz);
         m_controlPoints.push_back(p);
         
+        /*
         glm::vec2 dir = glm::vec2(vx, vz);
         float length = 150.0f * glm::length(dir);
         Mesh* m = MeshUtils::cylinder(300, length);
-        m->rotate(degreesToRadians(-90), glm::vec3(0, 0, 1));
-        m->rotate(angleWithXAxis(dir), glm::vec3(0, 1, 0));
-        m->moveTo(glm::vec3(px, m_gridHeight, pz));
+        m->rotate(0, degreesToRadians(-90), glm::vec3(0, 0, 1));
+        m->rotate(0, angleWithXAxis(dir), glm::vec3(0, 1, 0));
+        m->moveTo(0, glm::vec3(px, m_gridHeight, pz));
         m_meshControlPoints.push_back(m);
         
         if (m_lengthRange[0] > glm::length(dir))
@@ -79,6 +90,7 @@ namespace vectorfield {
         
         if (m_lengthRange[1] < glm::length(dir))
             m_lengthRange[1] = glm::length(dir);
+        */
     
     }
     
@@ -165,30 +177,39 @@ namespace vectorfield {
     
     void VectorField::update(){
         
+        int numControlPoints = m_controlPoints.size();
+        
+        m_meshControlPoints->setNumInstances(numControlPoints);
+        
+        for(int i=0; i < numControlPoints; i++) {
+            
+            glm::vec2 dir = m_controlPoints[i].value;
+            float length = glm::length(dir);
+           
+            m_meshControlPoints->scale(i, glm::vec3(1, length, 1));
+            m_meshControlPoints->rotate(i, degreesToRadians(-90), glm::vec3(0, 0, 1));
+            m_meshControlPoints->rotate(i, angleWithXAxis(dir), glm::vec3(0, 1, 0));
+            m_meshControlPoints->moveTo(i, glm::vec3(m_controlPoints[i].pos[0], m_gridHeight, m_controlPoints[i].pos[1]));
+            
+            if (m_lengthRange[0] > glm::length(dir))
+                m_lengthRange[0] = glm::length(dir);
+            
+            if (m_lengthRange[1] < glm::length(dir))
+                m_lengthRange[1] = glm::length(dir);
+            
+        }
+        
+        
         // recalculate colors
-        for(int i=0; i < m_meshControlPoints.size(); i++) {
+        for(int i=0; i < numControlPoints; i++) {
             glm::vec4 c = calColor(glm::length(glm::vec2(m_controlPoints[i].value)));
-            m_meshControlPoints[i]->setColor(c);
+            m_meshControlPoints->setColor(i, c);
         }
         
         // calculate grid values
         for (int z = 0; z < m_gridSizeZ; z++) {
             for (int x = 0; x < m_gridSizeX; x++) {
                 m_gridValues[z * m_gridSizeX + x] = calGridValue(x, z);
-                //cout << z << " " << x << " " << m_gridValues[z * m_gridSizeX + x][0] << " "
-                //     << m_gridValues[z * m_gridSizeX + x][1] << endl;
-                
-                // testing
-                /*
-                glm::vec2 dir = m_gridValues[z * m_gridSizeX + x];
-                float length = 150.0f * glm::length(dir);
-                Mesh* m = MeshUtils::cylinder(150, length);
-                m->rotate(degreesToRadians(-90), glm::vec3(0, 0, 1));
-                m->rotate(angleWithXAxis(dir), glm::vec3(0, 1, 0));
-                m->moveTo(glm::vec3(m_gridMin[0] + x * m_cellSize, m_gridHeight, m_gridMin[1] + z * m_cellSize));
-                m_meshTest.push_back(m);
-                */
-                
             }
         }
         m_updated = true;
@@ -218,6 +239,14 @@ namespace vectorfield {
         
         if(!m_updated)
             return;
+        
+        m_skip++;
+        if(m_skip % 3 != 0)
+            return;
+    
+        float SPEED = 10.0f;
+        
+        m_numActiveParticles = 0;
         
         // generate some new particles
         int newparticles = 0.016f*500.0; // ~ 1k a second
@@ -260,7 +289,6 @@ namespace vectorfield {
         
         
         // update all particles
-        m_numActiveParticles = 0;
         for (int i=0; i  < m_maxParticles; i++) {
             Particle& p = m_particleContainer[i];
             if(p.state != STATE_DEAD) {
@@ -273,7 +301,7 @@ namespace vectorfield {
                 iz = iz > m_gridSizeZ - 1 ? m_gridSizeZ - 1 : iz;
             
                 glm::vec2 v = m_gridValues[iz * m_gridSizeX + ix];
-                p.pos = p.pos + 3.0f*glm::vec3(v[0], 0, v[1]);
+                p.pos = p.pos + SPEED*glm::vec3(v[0], 0, v[1]);
                 
                 if(p.pos[0] < m_gridMin[0] || p.pos[2] <  m_gridMin[1] ||
                    p.pos[0] > m_gridMax[0] || p.pos[2] >  m_gridMax[1] ) {
@@ -284,6 +312,7 @@ namespace vectorfield {
                     glm::vec4 color = calColor(glm::length(v));
                     m_activeVertices[m_numActiveParticles] = p.pos;
                     m_activeColors[m_numActiveParticles] = color;
+                    m_activeVectors[m_numActiveParticles] = v;
                     m_numActiveParticles++;
                 }
                 
@@ -311,6 +340,7 @@ namespace vectorfield {
             return;
         
         m_material = new PointMaterial();
+        m_arrows = MeshUtils::cylinder(80, 100, 3, 4);
         
         glGenVertexArrays(1, &m_vao);
         glBindVertexArray(m_vao);
@@ -318,10 +348,14 @@ namespace vectorfield {
         glGenBuffers(1, &m_vbo[0]);
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * m_maxParticles, NULL, GL_STREAM_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer( 0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
         
         glGenBuffers(1, &m_vbo[1]);
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * m_maxParticles, NULL, GL_STREAM_DRAW);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer( 1,  4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
         
         glBindVertexArray(0);
         
@@ -336,54 +370,58 @@ namespace vectorfield {
         if(!m_initialized)
             setup();
         
-        for(int i=0; i < m_meshControlPoints.size(); i++)
-            m_meshControlPoints[i]->render(MV, P);
-        
-        for(int i=0; i < m_meshTest.size(); i++)
-            m_meshTest[i]->render(MV, P);
+        if(m_meshControlPoints)
+            m_meshControlPoints->render(MV, P);
         
         // particles
         simulateParticles();
+        if(m_numActiveParticles <= 0)
+            return;
         
-        glm::mat4 modelViewMatrix = glm::make_mat4(MV);
-        glm::mat4 projMatrix = glm::make_mat4(P);
-        glm::mat4 mvp = projMatrix * modelViewMatrix;
-        
-        GLSLProgram* shader = m_material->getShader();
-        shader->bind();
-        
-        shader->setUniform("uMV", modelViewMatrix);
-        shader->setUniform("uMVP", mvp);
-        shader->setUniform("uScreenHeight", 800.0f);
-        shader->setUniform("uPointScale", m_pointScale);
-        
-        glBindVertexArray(m_vao);
-        unsigned int val0, val1;
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
-        val0 = glGetAttribLocation(shader->getHandle(), "inPosition");
-        glEnableVertexAttribArray(val0);
-        glVertexAttribPointer( val0,  3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec3), &m_activeVertices[0]);
-        
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
-        val1 = glGetAttribLocation(shader->getHandle(), "inColor");
-        glEnableVertexAttribArray(val1);
-        glVertexAttribPointer( val1,  4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec4), &m_activeColors[0]);
-        
-        glEnable(GL_POINT_SPRITE);
-        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-        glDrawArrays( GL_POINTS, 0, m_numActiveParticles );
-        
-        shader->unbind();
-	
-        glDisableVertexAttribArray(val0);
-        glDisableVertexAttribArray(val1);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        shader->unbind();
-
-        glBindVertexArray(0);
+        if(m_particleType == TYPE_ARROW) {
+            m_arrows->setNumInstances(m_numActiveParticles);
+            for(int i=0; i < m_numActiveParticles; i++) {
+                m_arrows->reset(i);
+                float length = glm::length(m_activeVectors[i]);
+                m_arrows->scale(i, glm::vec3(1, length, 1));
+                m_arrows->rotate(i, degreesToRadians(-90), glm::vec3(0, 0, 1));
+                m_arrows->rotate(i, angleWithXAxis(m_activeVectors[i]), glm::vec3(0, 1, 0));
+                m_arrows->moveTo(i, m_activeVertices[i]);
+                m_arrows->setColor(i, m_activeColors[i]);
+            }
+            
+            m_arrows->render(MV, P);
+        }
+        else {
+            glm::mat4 modelViewMatrix = glm::make_mat4(MV);
+            glm::mat4 projMatrix = glm::make_mat4(P);
+            glm::mat4 mvp = projMatrix * modelViewMatrix;
+            
+            GLSLProgram* shader = m_material->getShader();
+            shader->bind();
+            
+            shader->setUniform("uMV", modelViewMatrix);
+            shader->setUniform("uMVP", mvp);
+            shader->setUniform("uScreenHeight", 800.0f);
+            shader->setUniform("uPointScale", m_pointScale);
+            
+            glBindVertexArray(m_vao);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[0]);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec3), &m_activeVertices[0]);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo[1]);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, m_numActiveParticles * sizeof(glm::vec4), &m_activeColors[0]);
+            
+            glDrawArrays( GL_POINTS, 0, m_numActiveParticles );
+            
+            shader->unbind();
+            
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            shader->unbind();
+            
+            glBindVertexArray(0);
+        }
     }
     
 }; //namespace vectorfield

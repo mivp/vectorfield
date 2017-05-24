@@ -27,6 +27,11 @@ enum ParticleState {
     STATE_DEAD
 };
 
+enum ParticleType {
+    TYPE_POINT,
+    TYPE_ARROW
+};
+
 struct Particle {
     ParticleState state;
     glm::vec3 pos;
@@ -52,8 +57,7 @@ namespace vectorfield {
         bool m_initialized;
         
         vector<ControlPoint> m_controlPoints;
-        vector<Mesh*> m_meshControlPoints;
-        vector<Mesh*> m_meshTest;
+        Mesh* m_meshControlPoints;
         
         //2d grid
         glm::vec2 m_gridMin, m_gridMax;
@@ -67,11 +71,15 @@ namespace vectorfield {
         int m_lastUsedParticle;
         vector<Particle> m_particleContainer;
         float m_curOffset;
+        int m_skip;
         //to render
+        int m_particleType;
         int m_numActiveParticles;
         vector<glm::vec3> m_activeVertices;
         vector<glm::vec4> m_activeColors;
+        vector<glm::vec2> m_activeVectors;
         float m_pointScale;
+        Mesh* m_arrows;
         
         //display
         unsigned int m_vbo[2];
@@ -98,6 +106,7 @@ namespace vectorfield {
         void addControlPoint(const float px, const float pz,
                              const float vx, const float vz);
         
+        void setParticleType(int type) { m_particleType = type; }
         void setPointScale(float ps) { m_pointScale = ps; }
         void update();
         void render(const float MV[16], const float P[16]);

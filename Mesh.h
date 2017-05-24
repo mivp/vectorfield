@@ -30,14 +30,14 @@ namespace vectorfield {
     class Mesh {
         
     private:
-        unsigned int m_vbo[3];
+        int m_numInstances;
+        unsigned int m_vbo[7];
         unsigned int m_ibo;
         unsigned int m_vao;
         bool m_initialized;
         
-        glm::mat4 m_modelMatrix;
-        
-        glm::vec4 m_color;
+        vector<glm::vec4> m_colors;
+        vector<glm::mat4> m_modelMatrixes;
         
     public:
         // mesh data
@@ -57,9 +57,21 @@ namespace vectorfield {
         Mesh();
         ~Mesh();
         
-        void moveTo(glm::vec3 pos);
-        void rotate(float angle, glm::vec3 axis);
-        void setColor(glm::vec4 color) { m_color = color; };
+        void setNumInstances(int num);
+        
+        
+        void reset(int instance = 0);
+        void scale(glm::vec3 s) { scale(0, s); }
+        void rotate(float angle, glm::vec3 axis) { rotate(0, angle, axis); }
+        void moveTo(glm::vec3 pos) { moveTo(0, pos); }
+        
+        void scale(int instance, glm::vec3 s);
+        void rotate(int instance, float angle, glm::vec3 axis);
+        void moveTo(int instance, glm::vec3 pos);
+        
+        void setColor(glm::vec4 color) { setColor(0, color); }
+        void setColor(int instance, glm::vec4 color) { m_colors[instance] = color; };
+        
         void render(const float MV[16], const float P[16]);
     };
     
