@@ -75,6 +75,14 @@ public:
             vectorfield->setArrowScale(as);
     }
 
+    void nextParticleType()
+    {
+        if(vectorfield->getParticleType() == TYPE_POINT)
+            vectorfield->setParticleType(TYPE_ARROW);
+        else
+            vectorfield->setParticleType(TYPE_POINT);
+    }
+
     vectorfield::VectorField* vectorfield;
     bool visible;
 };
@@ -149,6 +157,7 @@ BOOST_PYTHON_MODULE(vectorfield)
     PYAPI_METHOD(VectorFieldRenderModule, toggleVisible)
     PYAPI_METHOD(VectorFieldRenderModule, setPointScale)
     PYAPI_METHOD(VectorFieldRenderModule, setArrowScale)
+    PYAPI_METHOD(VectorFieldRenderModule, nextParticleType)
     ;
 
     def("initialize", initialize, PYAPI_RETURN_REF);

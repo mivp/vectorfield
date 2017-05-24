@@ -107,6 +107,7 @@ namespace vectorfield {
         void addControlPoint(const float px, const float pz,
                              const float vx, const float vz);
         
+        int getParticleType() { return m_particleType; }
         void setParticleType(int type) { m_particleType = type; }
         void setPointScale(float ps) { m_pointScale = ps; }
         void setArrowScale(float as) { m_arrowScale = as; }
