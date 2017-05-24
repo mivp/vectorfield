@@ -2,6 +2,8 @@
 
 Given a set of sparse 2D vectors (e.g. wind vectors observed at weather stations), the program displays a smooth 2D vector field in which vectors are displayed as moving points or arrows. A standard inverse distance weighted (IDW) interpolation is used to calculate values for the vector field.
 
+**Contact**: Toan Nguyen ([http://monash.edu/mivp](http://monash.edu/mivp))
+
 ## Omegalib module
 
 Tested with Omegalib 13.1
