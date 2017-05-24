@@ -18,7 +18,7 @@ namespace vectorfield {
                                 m_gridHeight(0), m_lengthRange(glm::vec2(FLT_MAX, -FLT_MAX)),
                                 m_maxParticles(10000), m_lastUsedParticle(0), m_curOffset(0), m_pointScale(1.0), m_skip(0),
                                 m_particleType(TYPE_ARROW), m_numActiveParticles(0), m_meshControlPoints(0), m_arrows(0),
-                                m_arrowScale(1.0) {
+                                m_arrowScale(1.0), m_elevationScale(1.0) {
         
     }
     
@@ -60,6 +60,9 @@ namespace vectorfield {
         
         m_meshControlPoints = MeshUtils::cylinder(200, 150);
         m_arrows = MeshUtils::cylinder(80, 100, 4, 6);
+        
+        m_elevationMap.clear();
+        m_elevationMapSize = glm::vec2(0);
     }
     
     float angleWithXAxis(glm::vec2 vec2) {
@@ -68,6 +71,46 @@ namespace vectorfield {
         if(vec2[1] > 0)
             theta = -theta;
         return theta;
+    }
+    
+    void VectorField::loadElevationFromFile(string txtfile) {
+        ifstream myfile;
+        myfile.open(txtfile.c_str(), std::ifstream::in);
+        
+        if (!myfile.is_open()) {
+            cout << "Unable to open file " << txtfile << endl;
+            return;
+        }
+        
+        //first line contains nrows, ncols
+        string line, token;
+        if (getline(myfile, line)) {
+            stringstream ss;
+            ss << line;
+            ss >> token; m_elevationMapSize[0] = atof(token.c_str());
+            ss >> token; m_elevationMapSize[1] = atof(token.c_str());
+            cout << "nrows: " << m_elevationMapSize[0] << "ncols: " << m_elevationMapSize[1] << endl;
+        }
+        else {
+            cout << "Unable to get elevation map size " << endl;
+            return;
+        }
+        
+        int numval = m_elevationMapSize[0] * m_elevationMapSize[1];
+        m_elevationMap.resize(numval);
+        
+        int row = 0;
+        while ( getline (myfile,line) ) {
+            stringstream ss;
+            ss << line;
+            for (int col=0; col < m_elevationMapSize[1]; col++) {
+                ss >> token;
+                m_elevationMap[row*m_elevationMapSize[1] + col] = atof(token.c_str());
+            }
+            row++;
+        }
+    
+        myfile.close();
     }
     
     void VectorField::addControlPoint(const float px, const float pz,
@@ -89,7 +132,6 @@ namespace vectorfield {
         
         float vmin = m_lengthRange[0];
         float vmax = m_lengthRange[1];
-        
         
         glm::vec4 c = glm::vec4(1.0); // white
         
@@ -160,6 +202,22 @@ namespace vectorfield {
         return value;
     }
     
+    float VectorField::calElevation(float posx, float posz) {
+        
+        if(m_elevationMap.size() < 1)
+            return 0;
+        
+        int indx = round((posx - m_gridMin[0]) / (m_gridMax[0] - m_gridMin[0]) * m_elevationMapSize[1]);
+        int indz = round((posz - m_gridMin[1]) / (m_gridMax[1] - m_gridMin[1]) * m_elevationMapSize[0]);
+        
+        indx = indx < 0 ? 0 : indx;
+        indx = indx > m_elevationMapSize[1] - 1 ? m_elevationMapSize[1] - 1 : indx;
+        indz = indz < 0 ? 0 : indz;
+        indz = indz > m_elevationMapSize[0] - 1 ? m_elevationMapSize[0] - 1 : indz;
+        
+        return m_elevationScale * m_elevationMap[indz * m_elevationMapSize[1] + indx];
+    }
+    
     void VectorField::update(){
         
         int numControlPoints = m_controlPoints.size();
@@ -174,7 +232,8 @@ namespace vectorfield {
             m_meshControlPoints->scale(i, glm::vec3(1, length, 1));
             m_meshControlPoints->rotate(i, degreesToRadians(-90), glm::vec3(0, 0, 1));
             m_meshControlPoints->rotate(i, angleWithXAxis(dir), glm::vec3(0, 1, 0));
-            m_meshControlPoints->moveTo(i, glm::vec3(m_controlPoints[i].pos[0], m_gridHeight, m_controlPoints[i].pos[1]));
+            float height = m_gridHeight + calElevation(m_controlPoints[i].pos[0], m_controlPoints[i].pos[1]);
+            m_meshControlPoints->moveTo(i, glm::vec3(m_controlPoints[i].pos[0], height, m_controlPoints[i].pos[1]));
             
             if (m_lengthRange[0] > glm::length(dir))
                 m_lengthRange[0] = glm::length(dir);
@@ -287,6 +346,7 @@ namespace vectorfield {
             
                 glm::vec2 v = m_gridValues[iz * m_gridSizeX + ix];
                 p.pos = p.pos + SPEED*glm::vec3(v[0], 0, v[1]);
+                p.pos[1] = m_gridHeight + calElevation(p.pos[0], p.pos[2]);
                 
                 if(p.pos[0] < m_gridMin[0] || p.pos[2] <  m_gridMin[1] ||
                    p.pos[0] > m_gridMax[0] || p.pos[2] >  m_gridMax[1] ) {

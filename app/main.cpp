@@ -86,8 +86,6 @@ static void window_size_callback(GLFWwindow* window, int width, int height) {
 	
 }
 
-
-
 void init_resources() {
     
     camera = new Camera();
@@ -102,6 +100,8 @@ void init_resources() {
     // vectorfield
     vectorField = new VectorField();
     vectorField->init(0, 0, 109379.614343, 72919.7428954, 4000, 100);
+    vectorField->loadElevationFromFile("/Users/toand/git/mivp/terrain/tessterrain/testdata/vic_usgs/vic_sw_elevation2.txt");
+    vectorField->setElevationScale(0.4);
     
     vectorField->addControlPoint( 72195.6097426 , 10213.8282815 , 4.9193495505 , 9.838699101 );
     vectorField->addControlPoint( 80216.7814611 , 8390.83470912 , 6.36396103068 , 6.36396103068 );

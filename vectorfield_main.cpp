@@ -36,21 +36,18 @@ public:
                 const float max_x, const float max_z, 
                 const float cell_size, const float height )
     {
-        if(vectorfield)
-            vectorfield->init(min_x, min_z, max_x, max_z, cell_size, height);
+        vectorfield->init(min_x, min_z, max_x, max_z, cell_size, height);
     } 
 
     void addControlPoint(const float px, const float pz,
                          const float vx, const float vz)
     {
-        if(vectorfield)
-            vectorfield->addControlPoint(px, pz, vx, vz);
+        vectorfield->addControlPoint(px, pz, vx, vz);
     }
 
     void updateVectorField()
     {
-        if(vectorfield)
-            vectorfield->update();
+        vectorfield->update();
     }
 
     void setVisible(bool v)
@@ -65,14 +62,12 @@ public:
 
     void setPointScale(float ps)
     {
-        if(vectorfield)
-            vectorfield->setPointScale(ps);
+        vectorfield->setPointScale(ps);
     }
 
     void setArrowScale(float as)
     {
-        if(vectorfield)
-            vectorfield->setArrowScale(as);
+        vectorfield->setArrowScale(as);
     }
 
     void nextParticleType()
@@ -81,6 +76,16 @@ public:
             vectorfield->setParticleType(TYPE_ARROW);
         else
             vectorfield->setParticleType(TYPE_POINT);
+    }
+
+    void loadElevationFromFile(string txtfile)
+    {
+        vectorfield->loadElevationFromFile(txtfile);
+    }
+
+    void setElevationScale(float es)
+    {
+        vectorfield->setElevationScale(es);
     }
 
     vectorfield::VectorField* vectorfield;
@@ -158,6 +163,8 @@ BOOST_PYTHON_MODULE(vectorfield)
     PYAPI_METHOD(VectorFieldRenderModule, setPointScale)
     PYAPI_METHOD(VectorFieldRenderModule, setArrowScale)
     PYAPI_METHOD(VectorFieldRenderModule, nextParticleType)
+    PYAPI_METHOD(VectorFieldRenderModule, loadElevationFromFile)
+    PYAPI_METHOD(VectorFieldRenderModule, setElevationScale)
     ;
 
     def("initialize", initialize, PYAPI_RETURN_REF);

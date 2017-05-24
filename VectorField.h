@@ -72,6 +72,10 @@ namespace vectorfield {
         vector<Particle> m_particleContainer;
         float m_curOffset;
         unsigned int m_skip;
+        //elevation to adjust hight of particle
+        float m_elevationScale;
+        glm::vec2 m_elevationMapSize;
+        vector<float> m_elevationMap;
         //to render
         int m_particleType;
         int m_numActiveParticles;
@@ -91,6 +95,7 @@ namespace vectorfield {
     private:
         glm::vec4 calColor(float value);
         glm::vec2 calGridValue(int x, int z, float power = 2, float smoothing = 0);
+        float calElevation(float posx, float posz);
         //particles
         int findUnusedParticle();
         void simulateParticles();
@@ -104,6 +109,8 @@ namespace vectorfield {
         void init(float min_x, float min_z, float max_x, float max_z, float cell_size, float height = 0);
         void printInfo();
         
+        void loadElevationFromFile(string txtfile);
+        
         void addControlPoint(const float px, const float pz,
                              const float vx, const float vz);
         
@@ -111,6 +118,7 @@ namespace vectorfield {
         void setParticleType(int type) { m_particleType = type; }
         void setPointScale(float ps) { m_pointScale = ps; }
         void setArrowScale(float as) { m_arrowScale = as; }
+        void setElevationScale(float es) { m_elevationScale = es; }
         void update();
         void render(const float MV[16], const float P[16]);
     };
