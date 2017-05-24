@@ -17,7 +17,8 @@ namespace vectorfield {
     VectorField::VectorField(): m_vao(0), m_updated(false), m_initialized(false), m_gridMin(glm::vec2(0,0)), m_gridMax(glm::vec2(0,0)),
                                 m_gridHeight(0), m_lengthRange(glm::vec2(FLT_MAX, -FLT_MAX)),
                                 m_maxParticles(10000), m_lastUsedParticle(0), m_curOffset(0), m_pointScale(1.0), m_skip(0),
-                                m_particleType(TYPE_ARROW), m_numActiveParticles(0), m_meshControlPoints(0), m_arrows(0) {
+                                m_particleType(TYPE_ARROW), m_numActiveParticles(0), m_meshControlPoints(0), m_arrows(0),
+                                m_arrowScale(1.0) {
         
     }
     
@@ -58,6 +59,7 @@ namespace vectorfield {
         m_activeVectors.resize(m_maxParticles);
         
         m_meshControlPoints = MeshUtils::cylinder(200, 150);
+        m_arrows = MeshUtils::cylinder(80, 100, 4, 6);
     }
     
     float angleWithXAxis(glm::vec2 vec2) {
@@ -75,23 +77,6 @@ namespace vectorfield {
         p.pos = glm::vec2(px, pz);
         p.value = glm::vec2(vx, vz);
         m_controlPoints.push_back(p);
-        
-        /*
-        glm::vec2 dir = glm::vec2(vx, vz);
-        float length = 150.0f * glm::length(dir);
-        Mesh* m = MeshUtils::cylinder(300, length);
-        m->rotate(0, degreesToRadians(-90), glm::vec3(0, 0, 1));
-        m->rotate(0, angleWithXAxis(dir), glm::vec3(0, 1, 0));
-        m->moveTo(0, glm::vec3(px, m_gridHeight, pz));
-        m_meshControlPoints.push_back(m);
-        
-        if (m_lengthRange[0] > glm::length(dir))
-            m_lengthRange[0] = glm::length(dir);
-        
-        if (m_lengthRange[1] < glm::length(dir))
-            m_lengthRange[1] = glm::length(dir);
-        */
-    
     }
     
     void VectorField::printInfo() {
@@ -340,7 +325,6 @@ namespace vectorfield {
             return;
         
         m_material = new PointMaterial();
-        m_arrows = MeshUtils::cylinder(80, 100, 3, 4);
         
         glGenVertexArrays(1, &m_vao);
         glBindVertexArray(m_vao);
@@ -383,7 +367,7 @@ namespace vectorfield {
             for(int i=0; i < m_numActiveParticles; i++) {
                 m_arrows->reset(i);
                 float length = glm::length(m_activeVectors[i]);
-                m_arrows->scale(i, glm::vec3(1, length, 1));
+                m_arrows->scale(i, glm::vec3(m_arrowScale, length, m_arrowScale));
                 m_arrows->rotate(i, degreesToRadians(-90), glm::vec3(0, 0, 1));
                 m_arrows->rotate(i, angleWithXAxis(m_activeVectors[i]), glm::vec3(0, 1, 0));
                 m_arrows->moveTo(i, m_activeVertices[i]);

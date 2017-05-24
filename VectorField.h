@@ -79,6 +79,7 @@ namespace vectorfield {
         vector<glm::vec4> m_activeColors;
         vector<glm::vec2> m_activeVectors;
         float m_pointScale;
+        float m_arrowScale;
         Mesh* m_arrows;
         
         //display
@@ -108,6 +109,7 @@ namespace vectorfield {
         
         void setParticleType(int type) { m_particleType = type; }
         void setPointScale(float ps) { m_pointScale = ps; }
+        void setArrowScale(float as) { m_arrowScale = as; }
         void update();
         void render(const float MV[16], const float P[16]);
     };

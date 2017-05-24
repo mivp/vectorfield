@@ -58,10 +58,21 @@ public:
         visible = v;
     }
 
+    void toggleVisible() 
+    {
+        visible = !visible;
+    }
+
     void setPointScale(float ps)
     {
         if(vectorfield)
             vectorfield->setPointScale(ps);
+    }
+
+    void setArrowScale(float as)
+    {
+        if(vectorfield)
+            vectorfield->setArrowScale(as);
     }
 
     vectorfield::VectorField* vectorfield;
@@ -135,7 +146,9 @@ BOOST_PYTHON_MODULE(vectorfield)
     PYAPI_METHOD(VectorFieldRenderModule, addControlPoint)
     PYAPI_METHOD(VectorFieldRenderModule, updateVectorField)
     PYAPI_METHOD(VectorFieldRenderModule, setVisible)
+    PYAPI_METHOD(VectorFieldRenderModule, toggleVisible)
     PYAPI_METHOD(VectorFieldRenderModule, setPointScale)
+    PYAPI_METHOD(VectorFieldRenderModule, setArrowScale)
     ;
 
     def("initialize", initialize, PYAPI_RETURN_REF);
