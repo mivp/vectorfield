@@ -24,7 +24,7 @@ vf.addControlPoint( 22245.5858592 , 48861.2920161 , 14.1421356237 , 14.142135623
 vf.addControlPoint( 52871.8778753 , 47038.2984437 , 7.6026311235 , 15.205262247 );
 vf.addControlPoint( 70737.2148847 , 25891.573004 , 8.4970583145 , 16.994116629 );
 
-vf.setPointScale(3)
+vf.setPointScale(2)
 vf.updateVectorField()
 
 # model

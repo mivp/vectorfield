@@ -1,5 +1,7 @@
 # Vector field
 
+Given a set of sparse 2D vectors (e.g. wind vectors observed at weather stations), the program displays a smooth 2D vector field in which vectors are displayed as moving points or arrows. A standard inverse distance weighted (IDW) interpolation is used to calculate values for the vector field.
+
 ## Omegalib module
 
 Tested with Omegalib 13.1
@@ -35,13 +37,19 @@ vf.addControlPoint( 22245.5858592 , 48861.2920161 , 14.1421356237 , 14.142135623
 vf.addControlPoint( 52871.8778753 , 47038.2984437 , 7.6026311235 , 15.205262247 );
 vf.addControlPoint( 70737.2148847 , 25891.573004 , 8.4970583145 , 16.994116629 );
 
-vf.setPointScale(0.8)
 vf.updateVectorField()
 ```
 
 Functions which can be used in python script:
 ```
 init: initialize grid (minx, minz, maxx, maxz, cellsize, height)
+setVisible(bool v)
+toggleVisible() 
+setPointScale(float ps): change point size
+setArrowScale(float as): change arrow size
+nextParticleType(): particles can be displayed as points or arrows
+loadElevationFromFile(string txtfile): the elevation values can be used to adjust particles' height
+setElevationScale(float es): change scale of elevation values
 ```
 
 ## Standalone app
